@@ -11,14 +11,14 @@
 # information you'd like us to know, please add it at the end of the file.
 
 # Partner 1
-Name: 
-Student ID: 
-Email: 
+Name: Lauren Yeung 
+Student ID: 104456482
+Email: lyeung.ca@gmail.com
 
 # Partner 2 (if you're working in a team)
-Name: 
-Student ID: 
-Email: 
+Name: Albert Wang
+Student ID: 504457700 
+Email: wang.l.albert@gmail.com
 
 # Extra credit problems
 #Extra credit problem: none
