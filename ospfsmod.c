@@ -895,7 +895,7 @@ ospfs_read(struct file *filp, char __user *buffer, size_t count, loff_t *f_pos)
 	if(*f_pos >= oi->oi_size){ //if it asks to read after the OI's size allows, we just return 0
 		goto done;
 	}
-	if (*f_pos + count > oi_size){ //set count to go to at most the end of the file
+	if (*f_pos + count > oi->oi_size){ //set count to go to at most the end of the file
 		count = oi->oi_size = *f_pos;
 	}
 
@@ -927,7 +927,7 @@ ospfs_read(struct file *filp, char __user *buffer, size_t count, loff_t *f_pos)
 		if (n > dataLeft){
 			n = dataLeft;
 		}
-		if (copy_to_user(,data + dataOffset, n)){
+		if (copy_to_user(buffer,data + dataOffset, n)){
 			retval = -EFAULT;
 			goto done;
 		}
