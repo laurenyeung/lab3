@@ -614,7 +614,7 @@ free_block(uint32_t blockno)
 	int toobig = (blockno > ospfs_super->os_nblocks);
 
 	//OSPFS_BLKSIZE/OSPFS_INODESIZE is 16
-	int toosmall = (blockno < (ospfs_super->os_firstinob + (ospfs_super->os_ninodes*16))); 
+	int toosmall = (blockno < (ospfs_super->os_firstinob + (ospfs_super->os_ninodes*16)));
 	if(toobig || toosmall)return;
 	void* bmap = ospfs_block(OSPFS_FREEMAP_BLK);
 	bitvector_set(bmap,blockno);
@@ -976,7 +976,7 @@ ospfs_write(struct file *filp, const char __user *buffer, size_t count, loff_t *
 	// size to accomodate the request.  (Use change_size().)
 	/* EXERCISE: Your code here */
 	if (*f_pos + count > oi->oi_size){ //if greater, we're writing past the end of the file, resize
-		change = change_size(oi, *f_pos + count);//set new size to exactly how much we're writing till.
+		int change = change_size(oi, *f_pos + count);//set new size to exactly how much we're writing till.
 			//if we're in here, error in resizing
 		if (change != 0){
 			retval = change;
