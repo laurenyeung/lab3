@@ -581,7 +581,19 @@ static uint32_t
 allocate_block(void)
 {
 	/* EXERCISE: Your code here */
-	return 0;
+	uint32_t i = OSPFS_FREEMAP_BLK;
+	void* bmapi = ospfs_block(OSPFS_FREEMAP_BLK);
+	//keep checking until end of bitmap
+	while(i <=ospfs_super->os_nblocks)
+	{
+		if (bitvector_test(bmapi,i) == 1) {//check if inode entry is 1 aka free
+			bitvector_clear(bmapi,i);//allocate, set as used
+			return i;
+		}
+		i++;//else is 0, not clear, keep incrementing
+	} 
+
+	return 0; //disk is full
 }
 
 
