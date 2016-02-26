@@ -582,12 +582,12 @@ allocate_block(void)
 {
 	/* EXERCISE: Your code here */
 	uint32_t i = OSPFS_FREEMAP_BLK;
-	void* bmapi = ospfs_block(OSPFS_FREEMAP_BLK);
+	void* bmap = ospfs_block(OSPFS_FREEMAP_BLK);
 	//keep checking until end of bitmap
 	while(i <=ospfs_super->os_nblocks)
 	{
-		if (bitvector_test(bmapi,i) == 1) {//check if inode entry is 1 aka free
-			bitvector_clear(bmapi,i);//allocate, set as used
+		if (bitvector_test(bmap,i) == 1) {//check if inode entry is 1 aka free
+			bitvector_clear(bmap,i);//allocate, set as used
 			return i;
 		}
 		i++;//else is 0, not clear, keep incrementing
@@ -611,7 +611,13 @@ allocate_block(void)
 static void
 free_block(uint32_t blockno)
 {
-	/* EXERCISE: Your code here */
+	int toobig = (blockno > ospfs_super->os_nblocks);
+
+	//OSPFS_BLKSIZE/OSPFS_INODESIZE is 16
+	int toosmall = (blockno < (ospfs_super->os_firstinob + (ospfs_super->os_ninodes*16))); 
+	if(toobig || toosmall)return;
+	void* bmap = ospfs_block(OSPFS_FREEMAP_BLK);
+	bitvector_set(bmap,blockno);
 }
 
 
