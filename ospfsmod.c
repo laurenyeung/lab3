@@ -495,7 +495,7 @@ ospfs_dir_readdir(struct file *filp, void *dirent, filldir_t filldir)
 		 	} else { //not possible?
 		 		eprintk("Error: Not A File Type");//error
 		 	}
-		 	if(ok_so_far <= 0)
+		 	if(ok_so_far < 0)
 		 	{
 		 		r = ok_so_far;
 		 		break;
