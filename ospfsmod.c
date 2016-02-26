@@ -455,7 +455,7 @@ ospfs_dir_readdir(struct file *filp, void *dirent, filldir_t filldir)
 
 		//directory size of 128 bytes, fpos with offset of 2
 		uint32_t unoffset = f_pos - 2;
-		if (unoffset *OSPFS_DIRENTRY_SIZE >= dir_oi->oi_size){ //file size
+		if ((unoffset *OSPFS_DIRENTRY_SIZE) >= dir_oi->oi_size){ //file size
 			r = 1;
 			break;
 		}
@@ -502,8 +502,7 @@ ospfs_dir_readdir(struct file *filp, void *dirent, filldir_t filldir)
 		 	} else {
 		 		f_pos++;
 		 	}
-		 }
-
+		 } else { f_pos++;}
 	}
 
 	// Save the file position and return!
