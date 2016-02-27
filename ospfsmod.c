@@ -653,6 +653,9 @@ static int32_t
 indir2_index(uint32_t b)
 {
 	// Your code here.
+	if (b >= OSPFS_NDIRECT + OSPFS_NINDIRECT){
+		return 0;
+	}
 	return -1;
 }
 
@@ -671,8 +674,17 @@ indir2_index(uint32_t b)
 static int32_t
 indir_index(uint32_t b)
 {
-	// Your code here.
-	return -1;
+	if (b < OSPFS_NDIRECT){//if not in a direct block
+		return -1;
+	} else if (b >= OSPFS_NDIRECT && b < (OSPFS_NDIRECT + OSFPS_NINDIRECT)){
+		// in the first indirection block
+		return 0;
+	} else {
+		//b-(ospfs_ndirect + ospfs_nindirect) gives how many blocks after the first indirection
+		//that we wantto be at. we then divide by nindirect again to determine which doubly
+		//indirect block points to the block we want to be at.
+		return (b - (OSPFS_NDIRECT + OSPFS_NINDIRECT)) / OSPFS_NINDIRECT;
+	}
 }
 
 
@@ -688,8 +700,17 @@ indir_index(uint32_t b)
 static int32_t
 direct_index(uint32_t b)
 {
-	// Your code here.
-	return -1;
+	if (b < OSPFS_NDIRECT){//if not in a direct block
+		return b;
+	} else if (b >= OSPFS_NDIRECT && b < (OSPFS_NDIRECT + OSFPS_NINDIRECT)){
+		// in the first indirection block
+		return b - OSPFS_NDIRECT;
+	} else {
+		//b-(ospfs_ndirect + ospfs_nindirect) gives how many blocks after the first indirection
+		//that we wantto be at. we then mod by nindirect again to determine the index of the
+		//doubly-indirect block we're in.
+		return (b - (OSPFS_NDIRECT + OSPFS_NINDIRECT)) % OSPFS_NINDIRECT;
+	}
 }
 
 
