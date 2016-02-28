@@ -700,7 +700,7 @@ indir_index(uint32_t b)
 static int32_t
 direct_index(uint32_t b)
 {
-	if (b < OSPFS_NDIRECT){//if not in a direct block
+	if (b < OSPFS_NDIRECT){//if in a direct block
 		return b;
 	} else if (b >= OSPFS_NDIRECT && b < (OSPFS_NDIRECT + OSFPS_NINDIRECT)){
 		// in the first indirection block
@@ -753,9 +753,103 @@ add_block(ospfs_inode_t *oi)
 
 	// keep track of allocations to free in case of -ENOSPC
 	uint32_t *allocated[2] = { 0, 0 };
+	//first will be a
 
 	/* EXERCISE: Your code here */
-	return -EIO; // Replace this line
+	//check to see if space full
+	if (n + 1 > OSPFS_MAXFILEBLKS) {
+		return -ENOSPC;
+	}
+	//if not full, try to allocate a new block
+	uint32_t newBlockNum = allocate_block();
+	//if failed to allocate a new block due to space issues, ret error
+	if (newBlockNum == 0){
+		return -ENOSPC;
+	}
+	//zero out the block's data
+	memset(ospfs_block(oi), 0, OSFPS_BLKSIZE);
+	//now that we have a new block, see what kind of block to make it
+	//1) it is a simple direct block;
+	if (n < OSFPS_NDIRECT){
+		//add it to the inode file
+		oi->oi_direct[n] = newBlockNum;
+		//else n is within the index for an indirect block
+	} else if (!indir_index(n)){
+		uint32_t * indirBlock;
+		uint32_t indirBlockNum
+		//we need to use the indirect block
+		int32_t offset = direct_index(n); //get the offset
+		//block we're creating is the first indirect, need to create the indirect
+		if (offset == 0){
+			indirBlockNum = allocate_block();
+			//if we fail to create the indir block
+			if (newBlockNum == 0){
+				//release the block we just grabbed
+				free_block(newBlockNum);
+				return -ENOSPC;
+			}
+			//get pointer to indir block
+			indirBlock = ospfs_block(indirBlockNum)
+			//clear the indirblock
+			memset(indirBlock,0,OSFPS_BLKSIZE);
+			//add it to inode structure
+			oi->oi_indirect = indirBlockNum;
+		} else {
+			indirBlock = ospfs_block(oi->oi_indirect);
+		}
+
+		//now add our new block to the relevant position to indirect_block
+		indirBlock[offset] = newBlock;
+	} else {//we need an indir^2 block
+		uint32_t * indir2Block;
+		uint32_t indir2BlockNum;
+		int createIndir2 = 0;
+		//see if we have to create the new indir^2 block
+		if (n == OSPFS_NDIRECT + OSPFS_NINDIRECT){
+			createIndir2 = 1;
+			indir2BlockNum = allocate_block();
+			//if we fail to create it, free the block
+			if (indir2BlockNum == 0){
+				free_block(newBlockNum);
+				return -ENOSPC;
+			}
+			//get pointer to indirect2 block
+			indir2Block = ospfs_block(indir2BlockNum);
+			//clear it out
+			memset = (indir2Block, 0, OSPFS_BLKSIZE);
+			//add pointer to inode struct
+			oi->oi_indirect2 = indir2Block;
+		} else {
+			indir2Block = oi->oi_indirect2;
+		}
+		uint32_t * indirBlock;
+		uint32_t indirBlockNum;
+		//now follow the indir2 block to the indirect
+		//if we just created a new indir2, we have to create a new indir to go along with it
+		if (createIndir2){
+			//must create a new reg indir
+			indirBlockNum = allocate_block();
+			if (indirBlockNum == 0){
+				free_block(newBlockNum);
+				free_block(indir2BlockNum);
+				return -ENOSPC;
+			}
+			//get a ptr to this block
+			indirBlock = ospfs_block(indirBlockNum);
+			//clear out the indirblock
+			memset(indirBlock, 0, OSPFS_BLKSIZE);
+		} else {
+			//we didnt create it, indir2 already existed, so now we just want the indir2
+			indirBlockNum = indir2Block[offset];
+			indirBlock = ospfs_block(indirBlockNum);
+		}
+		//now, we follow through and add the new block
+		indirOffset = direct_index(n);
+		indirBlock[indirOffset] = newBlockNum;
+	}
+
+	oi->oi_size = (n+1)*OSPFS_BLKSIZE;
+	return 0;
 }
 
 
@@ -787,8 +881,7 @@ remove_block(ospfs_inode_t *oi)
 	// current number of blocks in file
 	uint32_t n = ospfs_size2nblocks(oi->oi_size);
 
-	/* EXERCISE: Your code here */
-	return -EIO; // Replace this line
+	
 }
 
 
