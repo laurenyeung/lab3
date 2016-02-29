@@ -1277,7 +1277,23 @@ create_blank_direntry(ospfs_inode_t *dir_oi)
 static int
 ospfs_link(struct dentry *src_dentry, struct inode *dir, struct dentry *dst_dentry) {
 	/* EXERCISE: Your code here. */
-	return -EINVAL;
+	ospfs_inode_t * dir_oi = ospfs_inode(dir->i_ino);
+	ospfs_inode_t * src_oi = ospfs_inode(src_dentry->d_inode->i_ino);
+	ospfs_direntry_t * dir_ent;
+
+	int fnamelen = dst_dentry->d_name.len;
+	if(fnamelen > OSPFS_MAXNAMELEN) return -ENAMETOOLONG;
+	if(find_direntry(dir_oi, dst_dentry->d_name,fnamelen) return -EEXIST;
+
+	ospfs_direntry_t * createRet = create_blank_direntry(dir_oi);
+
+	if(IS_ERR((createRet))) return PTR_ERR(od);
+	//copy inode, filename with null char
+	createRet->od_ino = src_dentry->d_inode->i_ino;
+	memcpy(createRet->od_name, dst_dentry->d_name.name, (size_t)fnamelen);
+	createRet->od_name[fnamelen] = 0;
+	src_oi->oi_nlink++; //add to link count
+	return 0;
 }
 
 // ospfs_create
