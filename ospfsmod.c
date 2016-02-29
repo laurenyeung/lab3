@@ -676,7 +676,7 @@ indir_index(uint32_t b)
 {
 	if (b < OSPFS_NDIRECT){//if not in a direct block
 		return -1;
-	} else if (b >= OSPFS_NDIRECT && b < (OSPFS_NDIRECT + OSFPS_NINDIRECT)){
+	} else if (b >= OSPFS_NDIRECT && b < (OSPFS_NDIRECT + OSPFS_NINDIRECT)){
 		// in the first indirection block
 		return 0;
 	} else {
@@ -702,7 +702,7 @@ direct_index(uint32_t b)
 {
 	if (b < OSPFS_NDIRECT){//if in a direct block
 		return b;
-	} else if (b >= OSPFS_NDIRECT && b < (OSPFS_NDIRECT + OSFPS_NINDIRECT)){
+	} else if (b >= OSPFS_NDIRECT && b < (OSPFS_NDIRECT + OSPFS_NINDIRECT)){
 		// in the first indirection block
 		return b - OSPFS_NDIRECT;
 	} else {
@@ -767,16 +767,16 @@ add_block(ospfs_inode_t *oi)
 		return -ENOSPC;
 	}
 	//zero out the block's data
-	memset(ospfs_block(oi), 0, OSFPS_BLKSIZE);
+	memset(ospfs_block(newBlockNum), 0, OSPFS_BLKSIZE);
 	//now that we have a new block, see what kind of block to make it
 	//1) it is a simple direct block;
-	if (n < OSFPS_NDIRECT){
+	if (n < OSPFS_NDIRECT){
 		//add it to the inode file
 		oi->oi_direct[n] = newBlockNum;
 		//else n is within the index for an indirect block
 	} else if (!indir_index(n)){
 		uint32_t * indirBlock;
-		uint32_t indirBlockNum
+		uint32_t indirBlockNum;
 		//we need to use the indirect block
 		int32_t offset = direct_index(n); //get the offset
 		//block we're creating is the first indirect, need to create the indirect
@@ -789,9 +789,9 @@ add_block(ospfs_inode_t *oi)
 				return -ENOSPC;
 			}
 			//get pointer to indir block
-			indirBlock = ospfs_block(indirBlockNum)
+			indirBlock = ospfs_block(indirBlockNum);
 			//clear the indirblock
-			memset(indirBlock,0,OSFPS_BLKSIZE);
+			memset(indirBlock,0,OSPFS_BLKSIZE);
 			//add it to inode structure
 			oi->oi_indirect = indirBlockNum;
 		} else {
@@ -799,10 +799,11 @@ add_block(ospfs_inode_t *oi)
 		}
 
 		//now add our new block to the relevant position to indirect_block
-		indirBlock[offset] = newBlock;
+		indirBlock[offset] = newBlockNum;
 	} else {//we need an indir^2 block
 		uint32_t * indir2Block;
 		uint32_t indir2BlockNum;
+
 		int createIndir2 = 0;
 		//see if we have to create the new indir^2 block
 		if (n == OSPFS_NDIRECT + OSPFS_NINDIRECT){
@@ -816,14 +817,15 @@ add_block(ospfs_inode_t *oi)
 			//get pointer to indirect2 block
 			indir2Block = ospfs_block(indir2BlockNum);
 			//clear it out
-			memset = (indir2Block, 0, OSPFS_BLKSIZE);
+			memset(indir2Block, 0, OSPFS_BLKSIZE);
 			//add pointer to inode struct
-			oi->oi_indirect2 = indir2Block;
+			oi->oi_indirect2 = indir2BlockNum;
 		} else {
-			indir2Block = oi->oi_indirect2;
+			indir2Block = ospfs_block(oi->oi_indirect2);
 		}
-		uint32_t * indirBlock;
+		int32_t * indirBlock;
 		uint32_t indirBlockNum;
+		int32_t indirOffset;
 		//now follow the indir2 block to the indirect
 		//if we just created a new indir2, we have to create a new indir to go along with it
 		if (createIndir2){
@@ -840,12 +842,13 @@ add_block(ospfs_inode_t *oi)
 			memset(indirBlock, 0, OSPFS_BLKSIZE);
 		} else {
 			//we didnt create it, indir2 already existed, so now we just want the indir2
+			int32_t offset = direct_index(n);
 			indirBlockNum = indir2Block[offset];
 			indirBlock = ospfs_block(indirBlockNum);
 		}
 		//now, we follow through and add the new block
-		indirOffset = direct_index(n);
-		indirBlock[indirOffset] = newBlockNum;
+		int32_t indirOffset = direct_index(n);
+		int32_t indirBlock[indirOffset] = newBlockNum;
 	}
 
 	oi->oi_size = (n+1)*OSPFS_BLKSIZE;
@@ -880,7 +883,7 @@ remove_block(ospfs_inode_t *oi)
 {
 	// current number of blocks in file
 	uint32_t n = ospfs_size2nblocks(oi->oi_size);
-
+	return -EIO;
 	
 }
 
@@ -954,7 +957,7 @@ change_size(ospfs_inode_t *oi, uint32_t new_size)
 		oi->oi_size = old_size;
 	}
 
-	return retval; // Replace this line
+	return retVal; // Replace this line
 }
 
 
@@ -1218,7 +1221,22 @@ create_blank_direntry(ospfs_inode_t *dir_oi)
 	//    entries and return one of them.
 
 	/* EXERCISE: Your code here. */
-	return ERR_PTR(-EINVAL); // Replace this line
+	ospfs_direntry_t* od;
+	int offset;
+
+	for (offset = 0; offset < dir_oi->oi_size; offset+=OSPFS_DIRENTRY_SIZE)
+	{
+		od = ospfs_inode_data(dir_oi, offset);
+		if(od->od_ino == 0)
+		{
+			return od;
+		}
+	}
+
+	int retvalue;
+	retvalue = add_block(dir_oi);
+	if (retvalue < 0) return ERR_PTR(retvalue);
+	return ospfs_inode_data(dir_oi, offset);
 }
 
 // ospfs_link(src_dentry, dir, dst_dentry
