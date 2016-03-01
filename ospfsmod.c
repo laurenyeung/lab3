@@ -1414,7 +1414,7 @@ ospfs_create(struct inode *dir, struct dentry *dentry, int mode, struct nameidat
 	//find an empty inode
 	//start at inode #2
 	int i = 2;
-	for (; i < ospfs_super->os_ninodes; i++){
+	for (i; i < ospfs_super->os_ninodes; i++){
 		oi = ospfs_inode(i);
 		if (oi->oi_nlink == 0){
 			entry_ino = i;
@@ -1495,7 +1495,7 @@ ospfs_symlink(struct inode *dir, struct dentry *dentry, const char *symname)
 
 	// for(entry_ino = 2; entry_ino < ospfs_super->os_ninodes; entry_ino++)
 	// {
-		
+
 	// }
 	ospfs_inode_t * node;
 	uint32_t inode_iter = 2;
