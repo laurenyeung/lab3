@@ -680,7 +680,7 @@ indir2_index(uint32_t b)
 static int32_t
 indir_index(uint32_t b)
 {
-	if (b < OSPFS_NDIRECT){//if not in a direct block
+	if (b < OSPFS_NDIRECT){//if in a direct block
 		return -1;
 	} else if (b >= OSPFS_NDIRECT && b < (OSPFS_NDIRECT + OSPFS_NINDIRECT)){
 		// in the first indirection block
@@ -889,8 +889,80 @@ remove_block(ospfs_inode_t *oi)
 {
 	// current number of blocks in file
 	uint32_t n = ospfs_size2nblocks(oi->oi_size);
-	return -EIO;
-	
+	//
+	uint32_t blockToRemove;
+	uint32_t lastBlockNum = n - 1;
+	uint32_t indirOffset;
+	//check if it's in a direct block
+	if (indir_index(lastBlockNum) == -1){
+		//check to see that it exists
+		if (oi->oi_direct[lastBlockNum] == 0){
+			return -EIO;
+		}
+		oi->oi_direct[lastBlockNum] = 0;
+		free_block(lastBlockNum);
+	} else if (!(indir_inded(lastBlockNum))){
+		//else it's inside the first indirect block
+
+		//check that there is an indirect block to begin with
+		if (oi->oi_indirect == 0){
+			return -EIO;
+		}
+		//check to see if its at a valid spot,
+		indirOffset = direct_index(lastBlockNum);
+		uint32_t * indirBlock = ospfs_block(oi->oi_indirect);
+		if (indirBlock[indirOffset] == 0){
+			return -EIO;
+		}
+		//now remove it
+		free_block(indirBlock[indirOffset]);
+		indirBlock[indirOffset] = 0;
+
+		//see if we have to remove the indirblock now
+		if (indirOffset == 0){
+			free_block(indirBlock);
+			oi->oi_indirect = 0;
+		}
+	} else {
+		//we are in a indirect2 block
+
+		//check that there is a doubly-indirect
+		if (oi->oi_indirect2 == 0){
+			return -EIO;
+		}
+
+		uint32_t * indir2Block;
+		uint32_t * indirBlock;
+		uint32_t indir2Offset;
+		uint32_t indirOffset;
+		indir2Offset = indir_index(lastBlockNum);
+		indir2Block = oi->oi_indirect2;
+		//check for valid indirblock inside indir2
+		if (indir2Block[indir2Offset] == 0 ){
+			return -EIO;
+		}
+		//get a pointer to the indirblock in the indir2block we want to go to
+		indirBlock = ospsf_block(indir2Block[indir2Offset]);
+		//get offset for the actual block we want to remove
+		indirOffset = direct_index(lastBlockNum);
+		if (indirBlock[indirOffset] == 0 ){
+			return -EIO;
+		}
+		//remove block
+		free_block(indirBlock[indirOffset]);
+		//see if we have to clear this indirect block
+		if (indirOffset == 0) {
+			free_block(indir2Block[indir2Offset]);
+			indir2Block[indir2Offset] = 0;
+		}
+		//see if we have to clear the indir2block
+		if (indir2Offset == 0 && indirOffset == 0){
+			free_block(oi->oi_indirect2);
+			oi->oi_indirect2 = 0;
+		}
+	}
+	oi->oi_size = lastBlockNum * OSPFS_BLKSIZE;
+	return 0;
 }
 
 
