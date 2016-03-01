@@ -454,8 +454,7 @@ ospfs_dir_readdir(struct file *filp, void *dirent, filldir_t filldir)
 		 * EXERCISE: Your code here */
 
 		//directory size of 128 bytes, fpos with offset of 2
-		uint32_t unoffset = f_pos - 2;
-		if ((unoffset *OSPFS_DIRENTRY_SIZE) >= dir_oi->oi_size){ //file size
+		if (((f_pos-2) *OSPFS_DIRENTRY_SIZE) >= dir_oi->oi_size){ //file size
 			r = 1;
 			break;
 		}
@@ -497,7 +496,7 @@ ospfs_dir_readdir(struct file *filp, void *dirent, filldir_t filldir)
 		 	}
 		 	if(ok_so_far < 0)
 		 	{
-		 		r = ok_so_far;
+		 		r = 0;
 		 		break;
 		 	} else {
 		 		f_pos++;
@@ -1408,18 +1407,19 @@ ospfs_create(struct inode *dir, struct dentry *dentry, int mode, struct nameidat
 		return -ENAMETOOLONG;
 	}
 	//check if file already exists
-	if (find_direntry(dir_oi, dentry->d_name.name) != NULL){
+	if (find_direntry(dir_oi, dentry->d_name.name, dentry->d_name.len) != NULL){
 		return -EEXIST;
 	}
 
 	//find an empty inode
 	//start at inode #2
-	for (int i = 2; i < ospfs_super->os_ninodes; i++){
+	int i = 2;
+	for (; i < ospfs_super->os_ninodes; i++){
 		oi = ospfs_inode(i);
 		if (oi->oi_nlink == 0){
 			entry_ino = i;
 			//create the new entry
-			ospfs_inode_t * newEntry;
+			ospfs_direntry_t * newEntry;
 			newEntry = create_blank_direntry(dir_oi);
 			if (IS_ERR(newEntry)){
 				return PTR_ERR(newEntry);
@@ -1433,7 +1433,7 @@ ospfs_create(struct inode *dir, struct dentry *dentry, int mode, struct nameidat
 
 			//set up the new inode
 			oi->oi_mode = mode;
-			oi->size = 0;
+			oi->oi_size = 0;
 			oi->oi_nlink++;
 			oi->oi_ftype = OSPFS_FTYPE_REG;
 			break;
