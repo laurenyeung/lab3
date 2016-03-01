@@ -829,7 +829,7 @@ add_block(ospfs_inode_t *oi)
 		} else {
 			indir2Block = ospfs_block(oi->oi_indirect2);
 		}
-		int32_t * indirBlock;
+		uint32_t * indirBlock;
 		uint32_t indirBlockNum;
 		int32_t indirOffset;
 		//now follow the indir2 block to the indirect
@@ -853,8 +853,8 @@ add_block(ospfs_inode_t *oi)
 			indirBlock = ospfs_block(indirBlockNum);
 		}
 		//now, we follow through and add the new block
-		int32_t indirOffset = direct_index(n);
-		int32_t indirBlock[indirOffset] = newBlockNum;
+		indirOffset = direct_index(n);
+		indirBlock[indirOffset] = newBlockNum;
 	}
 
 	oi->oi_size = (n+1)*OSPFS_BLKSIZE;
@@ -1351,15 +1351,14 @@ ospfs_link(struct dentry *src_dentry, struct inode *dir, struct dentry *dst_dent
 	/* EXERCISE: Your code here. */
 	ospfs_inode_t * dir_oi = ospfs_inode(dir->i_ino);
 	ospfs_inode_t * src_oi = ospfs_inode(src_dentry->d_inode->i_ino);
-	ospfs_direntry_t * dir_ent;
 
 	int fnamelen = dst_dentry->d_name.len;
 	if(fnamelen > OSPFS_MAXNAMELEN) return -ENAMETOOLONG;
-	if(find_direntry(dir_oi, dst_dentry->d_name,fnamelen) return -EEXIST;
+	if(find_direntry(dir_oi, dst_dentry->d_name.name,fnamelen)) return -EEXIST;
 
 	ospfs_direntry_t * createRet = create_blank_direntry(dir_oi);
 
-	if(IS_ERR((createRet))) return PTR_ERR(od);
+	if(IS_ERR((createRet))) return PTR_ERR(createRet);
 	//copy inode, filename with null char
 	createRet->od_ino = src_dentry->d_inode->i_ino;
 	memcpy(createRet->od_name, dst_dentry->d_name.name, (size_t)fnamelen);
@@ -1447,8 +1446,8 @@ ospfs_symlink(struct inode *dir, struct dentry *dentry, const char *symname)
 	uint32_t entry_ino = 0;
 	ospfs_inode_t * oi;
 
-	fnamelen = dentry->d.name.len;
-	if(fnamelen > OSPFS_MAXNAMELEN || strlen(symname) > OSPFS_MAXNAMELINKLEN)
+	int fnamelen = dentry->d_name.len;
+	if(fnamelen > OSPFS_MAXNAMELEN || strlen(symname) > OSPFS_MAXSYMLINKLEN)
 		return -ENAMETOOLONG;
 
 	if(find_direntry(dir_oi, dentry->d_name.name, fnamelen) != NULL)
